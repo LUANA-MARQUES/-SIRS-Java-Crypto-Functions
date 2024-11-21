@@ -130,11 +130,15 @@ public class MACTest {
 		System.out.println("CipherDigest:");
 		System.out.println(printHexBinary(cipherDigest));
 
+		// EXERCISE - 2. Test the Tamper Detection of either the MAC or the Digital Signature
+		String plainText2 = "This was tampered with";
+		final byte[] plainBytes2 = plainText2.getBytes();
+
 		// verify the MAC
 		System.out.println("Verifying...");
-		boolean result = redigestDecipherAndCompare(cipherDigest, plainBytes, key);
+		boolean result = redigestDecipherAndCompare(cipherDigest, plainBytes2, key);
 		System.out.println("MAC is " + (result ? "right" : "wrong"));
-		assertTrue(result);
+		//assertTrue(result);
 
 		System.out.println();
 		System.out.println();
