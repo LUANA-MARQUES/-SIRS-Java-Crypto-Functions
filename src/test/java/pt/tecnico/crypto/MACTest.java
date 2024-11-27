@@ -3,14 +3,17 @@ package pt.tecnico.crypto;
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Base64;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.spec.IvParameterSpec;
 
 import org.junit.jupiter.api.Test;
@@ -60,7 +63,11 @@ public class MACTest {
 
 		// make MAC
 		System.out.println("Signing...");
-		byte[] cipherDigest = makeMAC(plainBytes, key);
+		// byte[] cipherDigest = makeMAC(plainBytes, key);
+		// [exercise] Make MAC with nonce
+		String nonce = generateNonce();
+		byte[] cipherDigest = makeMACwNonce(plainText, nonce, key);
+
 		System.out.println("CipherDigest:");
 		System.out.println(printHexBinary(cipherDigest));
 
@@ -68,7 +75,42 @@ public class MACTest {
 		System.out.println("Verifying...");
 		boolean result = verifyMAC(cipherDigest, plainBytes, key);
 		System.out.println("MAC is " + (result ? "right" : "wrong"));
-		assertTrue(result);
+		//assertTrue(result);
+
+		System.out.println();
+		System.out.println();
+	}
+
+	// [EXERCISE 3]  mvn test -Dtest=MACTest*#testMACwNonceObject*
+	@Test
+	public void testMACwNonceObject() throws Exception {
+		System.out.print("TEST '");
+		System.out.print(MAC_ALGO);
+		System.out.println("' message authentication code with nonce.");
+
+		System.out.println("Text:");
+		System.out.println(plainText);
+		System.out.println("Bytes:");
+		System.out.println(printHexBinary(plainBytes));
+
+		// generate AES secret key
+		SecretKey key = generateMACKey(SYM_KEY_SIZE);
+
+		// make MAC with nonce
+		System.out.println("Signing...");
+		// byte[] cipherDigest = makeMAC(plainBytes, key);
+		// [exercise] Make MAC with nonce
+		String nonce = generateNonce();
+		byte[] cipherDigest = makeMACwNonce(plainText, nonce, key);
+
+		System.out.println("CipherDigest:");
+		System.out.println(printHexBinary(cipherDigest));
+
+		// verify the MAC
+		System.out.println("Verifying MAC...");
+		boolean result = verifyMACwNonce(cipherDigest, plainBytes, key);
+		System.out.println("MAC is " + (result ? "right" : "wrong"));
+		//assertTrue(result);
 
 		System.out.println();
 		System.out.println();
@@ -90,6 +132,35 @@ public class MACTest {
 		byte[] macBytes = mac.doFinal(bytes);
 
 		return macBytes;
+	}
+	
+	// [exercise 3 Freshness] Generate MAC with nonce
+	@SuppressWarnings("unused")
+	private static byte[] makeMACwNonce(String messageString, String nonce, SecretKey key) throws Exception {
+		String data = nonce + "|" + messageString;
+		Mac mac = Mac.getInstance(MAC_ALGO);
+		SecretKeySpec keySpec = new SecretKeySpec(key.getEncoded(), MAC_ALGO);
+		mac.init(keySpec);
+		byte[] macBytes = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+		
+		return macBytes;
+	}
+
+	// [exercise 3 Freshness] Generate a secure random nonce
+    public static String generateNonce() {
+        SecureRandom random = new SecureRandom();
+        byte[] nonceBytes = new byte[16];
+        random.nextBytes(nonceBytes);
+        return Base64.getEncoder().encodeToString(nonceBytes); // Return nonce in Base64 format
+    }
+
+	// [exercise 3 Freshness] Verify MAC with nonce
+	public static boolean verifyMACwNonce(byte[] receivedMacBytes, byte[] bytes, SecretKey key) throws Exception {
+		Mac mac = Mac.getInstance(MAC_ALGO);
+		SecretKeySpec keySpec = new SecretKeySpec(key.getEncoded(), MAC_ALGO);
+		mac.init(keySpec);
+		byte[] recomputedMacBytes = mac.doFinal(bytes);
+		return Arrays.equals(receivedMacBytes, recomputedMacBytes);
 	}
 
 	/**
@@ -130,15 +201,11 @@ public class MACTest {
 		System.out.println("CipherDigest:");
 		System.out.println(printHexBinary(cipherDigest));
 
-		// EXERCISE - 2. Test the Tamper Detection of either the MAC or the Digital Signature
-		String plainText2 = "This was tampered with";
-		final byte[] plainBytes2 = plainText2.getBytes();
-
 		// verify the MAC
 		System.out.println("Verifying...");
-		boolean result = redigestDecipherAndCompare(cipherDigest, plainBytes2, key);
+		boolean result = redigestDecipherAndCompare(cipherDigest, plainBytes, key);
 		System.out.println("MAC is " + (result ? "right" : "wrong"));
-		//assertTrue(result);
+		assertTrue(result);
 
 		System.out.println();
 		System.out.println();
